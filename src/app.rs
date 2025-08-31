@@ -50,7 +50,8 @@ impl eframe::App for TemplateApp {
             jog_speed,
             gcode_loader,
             file_dialog,
-            picked_file, serial_monitor,
+            picked_file,
+            serial_monitor,
         } = self;
         // Put your widgets into a `SidePanel`, `TopBottomPanel`, `CentralPanel`, `Window` or `Area`.
         // For inspiration and more examples, go to https://emilk.github.io/egui
@@ -63,8 +64,6 @@ impl eframe::App for TemplateApp {
             });
         });
         egui::SidePanel::right("right_panel")
-            .resizable(false)
-            .default_width(450.0)
             .show(ctx, |ui| {
                 ui.heading("Manual Control");
                 ui.add_space(16.0);
@@ -108,17 +107,14 @@ impl eframe::App for TemplateApp {
             ui.label(format!("Current file: {:?}", self.picked_file));
             if let Some(path) = self.file_dialog.update(ctx).picked() {
                 self.picked_file = Some(path.to_path_buf());
-                self.gcode_loader =
-                    GCodeLoader::new(self.picked_file.clone().expect("REASON"));
+                self.gcode_loader = GCodeLoader::new(self.picked_file.clone().expect("REASON"));
             }
             if ui.button("Select file").clicked() {
                 self.file_dialog.pick_file();
             };
             ui.add_space(16.0);
             ui.label("Set speed");
-            ui.add(
-                egui::Slider::new(jog_speed, 0.001..=0.100).text("Speed per jog (inches)"),
-            );
+            ui.add(egui::Slider::new(jog_speed, 0.001..=0.100).text("Speed per jog (inches)"));
             ui.add_space(20.0);
             ui.horizontal(|ui| {
                 let _ = ui.button("Start plotting");
@@ -157,8 +153,5 @@ impl eframe::App for TemplateApp {
                 egui::warn_if_debug_build(ui);
             });
         });
-
-
-
     }
 }
