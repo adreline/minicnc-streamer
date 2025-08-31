@@ -42,9 +42,7 @@ impl eframe::App for TemplateApp {
 
     /// Called each time the UI needs repainting, which may be many times per second.
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        let Self {
-            serial_port, value
-        } = self;
+        let Self { serial_port, value } = self;
         // Put your widgets into a `SidePanel`, `TopBottomPanel`, `CentralPanel`, `Window` or `Area`.
         // For inspiration and more examples, go to https://emilk.github.io/egui
 
@@ -84,7 +82,9 @@ impl eframe::App for TemplateApp {
             let _ = ui.button("Select file");
             ui.add_space(16.0);
             ui.label("Set speed");
-            ui.add(egui::Slider::new(&mut self.value, 0.001..=0.100).text("Speed per jog (inches)"));
+            ui.add(
+                egui::Slider::new(&mut self.value, 0.001..=0.100).text("Speed per jog (inches)"),
+            );
             ui.label("GRBL settings:");
             ui.add_space(20.0);
             ui.horizontal(|ui| {
@@ -102,7 +102,6 @@ impl eframe::App for TemplateApp {
                 ui.vertical(|ui| {
                     ui.label("Jog the head in X and Y axis");
                     egui::Grid::new("parent grid").striped(true).show(ui, |ui| {
-
                         ui.label("");
                         let _ = ui.button("🡅");
                         ui.label("");
