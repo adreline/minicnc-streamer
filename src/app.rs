@@ -3,18 +3,17 @@
 #[serde(default)] // if we add new fields, give them default values when deserializing old state
 pub struct TemplateApp {
     // Example stuff:
-    label: String,
+    serial_port: String,
 
     #[serde(skip)] // This how you opt-out of serialization of a field
     value: f32,
 }
-
 impl Default for TemplateApp {
     fn default() -> Self {
         Self {
             // Example stuff:
-            label: "Hello World!".to_owned(),
-            value: 2.7,
+            serial_port: "Hello World!".to_owned(),
+            value: 0.001,
         }
     }
 }
@@ -43,6 +42,9 @@ impl eframe::App for TemplateApp {
 
     /// Called each time the UI needs repainting, which may be many times per second.
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        let Self {
+            serial_port, value
+        } = self;
         // Put your widgets into a `SidePanel`, `TopBottomPanel`, `CentralPanel`, `Window` or `Area`.
         // For inspiration and more examples, go to https://emilk.github.io/egui
 
@@ -67,25 +69,61 @@ impl eframe::App for TemplateApp {
 
         egui::CentralPanel::default().show(ctx, |ui| {
             // The central panel the region left after adding TopPanel's and SidePanel's
-            ui.heading("eframe template");
-
+            ui.heading("MiniCNC Streamer");
+            ui.add_space(10.0);
+            ui.label("Select serial port");
+            egui::ComboBox::from_label("")
+                .selected_text(format!("{serial_port}"))
+                .show_ui(ui, |ui| {
+                    ui.selectable_value(serial_port, "/dev/tty1".parse().unwrap(), "tty1");
+                });
             ui.horizontal(|ui| {
-                ui.label("Write something: ");
-                ui.text_edit_singleline(&mut self.label);
+                ui.label("Current file:");
+                ui.label("None");
             });
-
-            ui.add(egui::Slider::new(&mut self.value, 0.0..=10.0).text("value"));
-            if ui.button("Increment").clicked() {
-                self.value += 1.0;
-            }
-
+            let _ = ui.button("Select file");
+            ui.add_space(16.0);
+            ui.label("Set speed");
+            ui.add(egui::Slider::new(&mut self.value, 0.001..=0.100).text("Speed per jog (inches)"));
+            ui.label("GRBL settings:");
+            ui.add_space(20.0);
+            ui.horizontal(|ui| {
+                let _ = ui.button("Start plotting");
+                let _ = ui.button("Abort plotting");
+            });
             ui.separator();
+            ui.heading("Manual Control");
+            ui.add_space(16.0);
+            ui.horizontal(|ui| {
+                ui.vertical(|ui| {
+                    let _ = ui.button("Zero machine");
+                    let _ = ui.button("Go home");
+                });
+                ui.vertical(|ui| {
+                    ui.label("Jog the head in X and Y axis");
+                    egui::Grid::new("parent grid").striped(true).show(ui, |ui| {
 
-            ui.add(egui::github_link_file!(
-                "https://github.com/emilk/eframe_template/blob/main/",
-                "Source code."
-            ));
+                        ui.label("");
+                        let _ = ui.button("🡅");
+                        ui.label("");
 
+                        ui.end_row();
+
+                        let _ = ui.button("🡄");
+                        ui.label("");
+                        let _ = ui.button("🡆");
+
+                        ui.end_row();
+
+                        ui.label("");
+                        let _ = ui.button("🡇");
+                        ui.label("");
+
+                        ui.end_row();
+                    });
+                });
+            });
+            ui.add_space(10.0);
             ui.with_layout(egui::Layout::bottom_up(egui::Align::LEFT), |ui| {
                 powered_by_egui_and_eframe(ui);
                 egui::warn_if_debug_build(ui);
