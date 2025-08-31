@@ -67,10 +67,11 @@ impl eframe::App for TemplateApp {
             .show(ctx, |ui| {
                 ui.heading("Manual Control");
                 ui.add_space(16.0);
-                let _ = ui.button("Zero machine");
-                if ui.button("Go home").clicked(){
+                let _ = ui.button("Zero machine").on_hover_text("Set home to the current location");
+                if ui.button("Go home").on_hover_text("Move the head to (0, 0)").clicked(){
                     self.serial_monitor.push("homehomehomehomehomehomehomehomehomehomehomehomehomehomehomehomehomehomehomehomehomehomehomehomehomehomehomehomehomehomehomehomehome".to_string());
                 };
+                let _ = ui.button("Lift the head").on_hover_text("De facto Z axis jog");
                 ui.add_space(10.0);
                 ui.label("Jog the head in X and Y axis");
                 egui::Grid::new("parent grid").striped(true).show(ui, |ui| {
@@ -117,8 +118,8 @@ impl eframe::App for TemplateApp {
             ui.add(egui::Slider::new(jog_speed, 0.001..=0.100).text("Speed per jog (inches)"));
             ui.add_space(20.0);
             ui.horizontal(|ui| {
-                let _ = ui.button("Start plotting");
-                let _ = ui.button("Abort plotting");
+                let _ = ui.button("Start plotting").on_hover_text("Begin streaming GCode");
+                let _ = ui.button("Abort plotting").on_hover_text("Stop streaming GCode (this is NOT immediate)");
             });
 
             ui.separator();
