@@ -1,23 +1,23 @@
 use crate::gcode_loader::GCodeLoader;
+use egui::{FontId, RichText};
+use egui_file_dialog::FileDialog;
+use std::path::PathBuf;
 
-/// We derive Deserialize/Serialize so we can persist app state on shutdown.
-#[derive(serde::Deserialize, serde::Serialize)]
-#[serde(default)] // if we add new fields, give them default values when deserializing old state
 pub struct TemplateApp {
-    // Example stuff:
     jog_speed: f32,
-    #[serde(skip)] // This how you opt out of serialization of a field
     serial_port: String,
-    #[serde(skip)]
     gcode_loader: GCodeLoader,
+    file_dialog: FileDialog,
+    picked_file: Option<PathBuf>,
 }
 impl Default for TemplateApp {
     fn default() -> Self {
         Self {
-            // Example stuff:
             serial_port: "".to_owned(),
             jog_speed: 0.001,
             gcode_loader: GCodeLoader::default(),
+            file_dialog: FileDialog::new(),
+            picked_file: None,
         }
     }
 }
@@ -30,18 +30,26 @@ impl TemplateApp {
 
         // Load previous app state (if any).
         // Note that you must enable the `persistence` feature for this to work.
-        if let Some(storage) = cc.storage {
-            eframe::get_value(storage, eframe::APP_KEY).unwrap_or_default()
-        } else {
-            Default::default()
-        }
+        Default::default()
+    }
+
+    fn custom_text(text: &str, size: f32) -> RichText {
+        RichText::new(text).font(FontId::proportional(size))
     }
 }
+
+const SUBHEADER_SIZE: f32 = 15.0;
 
 impl eframe::App for TemplateApp {
     /// Called each time the UI needs repainting, which may be many times per second.
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        let Self { serial_port, jog_speed, gcode_loader } = self;
+        let Self {
+            serial_port,
+            jog_speed,
+            gcode_loader,
+            file_dialog,
+            picked_file,
+        } = self;
         // Put your widgets into a `SidePanel`, `TopBottomPanel`, `CentralPanel`, `Window` or `Area`.
         // For inspiration and more examples, go to https://emilk.github.io/egui
 
@@ -66,30 +74,46 @@ impl eframe::App for TemplateApp {
 
         egui::CentralPanel::default().show(ctx, |ui| {
             // The central panel the region left after adding TopPanel's and SidePanel's
-            ui.heading("MiniCNC Streamer");
+            ui.heading("Plotting settings");
             ui.add_space(10.0);
-            ui.label("Select serial port");
-            egui::ComboBox::from_label("")
-                .selected_text(format!("{serial_port}"))
-                .show_ui(ui, |ui| {
-                    ui.selectable_value(serial_port, "/dev/tty1".parse().unwrap(), "tty1");
+            ui.horizontal(|ui| {
+                ui.vertical(|ui| {
+                    ui.label("Select serial port");
+                    egui::ComboBox::from_label("")
+                        .selected_text(format!("{serial_port}"))
+                        .show_ui(ui, |ui| {
+                            ui.selectable_value(serial_port, "/dev/tty1".parse().unwrap(), "tty1");
+                        });
+                    ui.add_space(16.0);
+                    ui.label(format!("Current file: {:?}", self.picked_file));
+                    if let Some(path) = self.file_dialog.update(ctx).picked() {
+                        self.picked_file = Some(path.to_path_buf());
+                        self.gcode_loader =
+                            GCodeLoader::new(self.picked_file.clone().expect("REASON"));
+                    }
+                    if ui.button("Select file").clicked() {
+                        self.file_dialog.pick_file();
+                    };
+                    ui.add_space(16.0);
+                    ui.label("Set speed");
+                    ui.add(
+                        egui::Slider::new(jog_speed, 0.001..=0.100).text("Speed per jog (inches)"),
+                    );
+                    ui.add_space(20.0);
+                    ui.horizontal(|ui| {
+                        let _ = ui.button("Start plotting");
+                        let _ = ui.button("Abort plotting");
+                    });
                 });
-            ui.horizontal(|ui| {
-                ui.label("Current file:");
-                ui.label("None");
+                ui.vertical(|ui| {
+                    ui.label(Self::custom_text("GCode file", SUBHEADER_SIZE));
+                    ui.label(format!("Lines: {:?}", self.gcode_loader.gcode.len()));
+                    ui.add_space(10.0);
+                    ui.label(Self::custom_text("GRBL settings", SUBHEADER_SIZE));
+                    ui.label("-");
+                });
             });
-            let _ = ui.button("Select file");
-            ui.add_space(16.0);
-            ui.label("Set speed");
-            ui.add(
-                egui::Slider::new(jog_speed, 0.001..=0.100).text("Speed per jog (inches)"),
-            );
-            ui.label("GRBL settings:");
-            ui.add_space(20.0);
-            ui.horizontal(|ui| {
-                let _ = ui.button("Start plotting");
-                let _ = ui.button("Abort plotting");
-            });
+
             ui.separator();
             ui.heading("Manual Control");
             ui.add_space(16.0);
@@ -102,19 +126,19 @@ impl eframe::App for TemplateApp {
                     ui.label("Jog the head in X and Y axis");
                     egui::Grid::new("parent grid").striped(true).show(ui, |ui| {
                         ui.label("");
-                        let _ = ui.button("🡅");
+                        let _ = ui.button("⬆");
                         ui.label("");
 
                         ui.end_row();
 
-                        let _ = ui.button("🡄");
+                        let _ = ui.button("⬅");
                         ui.label("");
-                        let _ = ui.button("🡆");
+                        let _ = ui.button("➡");
 
                         ui.end_row();
 
                         ui.label("");
-                        let _ = ui.button("🡇");
+                        let _ = ui.button("⬇");
                         ui.label("");
 
                         ui.end_row();
@@ -127,11 +151,6 @@ impl eframe::App for TemplateApp {
                 egui::warn_if_debug_build(ui);
             });
         });
-    }
-
-    /// Called by the framework to save state before shutdown.
-    fn save(&mut self, storage: &mut dyn eframe::Storage) {
-        eframe::set_value(storage, eframe::APP_KEY, self);
     }
 }
 

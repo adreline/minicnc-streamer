@@ -8,24 +8,25 @@ pub static OPENBUILDS_COMPAT: [(&str, &str); 3] = [
 pub mod gcode_loader {
     use crate::gcode::OPENBUILDS_COMPAT;
     use std::fs::read_to_string;
+    use std::path::PathBuf;
 
     pub struct GCodeLoader {
-        pub filepath: String,
+        pub filepath: PathBuf,
         pub gcode: Vec<String>,
     }
     impl Default for GCodeLoader {
         fn default() -> Self {
-            Self { filepath: "".to_string(), gcode: vec![] }
+            Self { filepath: "".to_string().parse().unwrap(), gcode: vec![] }
         }
     }
     impl GCodeLoader {
-        pub fn new(filepath: String) -> Self {
-            let gcode = translate_gcode(load_gcode(&*filepath));
+        pub fn new(filepath: PathBuf) -> Self {
+            let gcode = translate_gcode(load_gcode(filepath.clone()));
             Self { filepath, gcode }
         }
     }
 
-    fn load_gcode(filepath: &str) -> Vec<String> {
+    fn load_gcode(filepath: PathBuf) -> Vec<String> {
         read_to_string(filepath)
             .unwrap() // panic on possible file-reading errors
             .lines() // split the string into an iterator of string slices
