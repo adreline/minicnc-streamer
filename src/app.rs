@@ -1,19 +1,23 @@
+use crate::gcode_loader::GCodeLoader;
+
 /// We derive Deserialize/Serialize so we can persist app state on shutdown.
 #[derive(serde::Deserialize, serde::Serialize)]
 #[serde(default)] // if we add new fields, give them default values when deserializing old state
 pub struct TemplateApp {
     // Example stuff:
+    jog_speed: f32,
+    #[serde(skip)] // This how you opt out of serialization of a field
     serial_port: String,
-
-    #[serde(skip)] // This how you opt-out of serialization of a field
-    value: f32,
+    #[serde(skip)]
+    gcode_loader: GCodeLoader,
 }
 impl Default for TemplateApp {
     fn default() -> Self {
         Self {
             // Example stuff:
-            serial_port: "Hello World!".to_owned(),
-            value: 0.001,
+            serial_port: "".to_owned(),
+            jog_speed: 0.001,
+            gcode_loader: GCodeLoader::default(),
         }
     }
 }
@@ -35,14 +39,9 @@ impl TemplateApp {
 }
 
 impl eframe::App for TemplateApp {
-    /// Called by the framework to save state before shutdown.
-    fn save(&mut self, storage: &mut dyn eframe::Storage) {
-        eframe::set_value(storage, eframe::APP_KEY, self);
-    }
-
     /// Called each time the UI needs repainting, which may be many times per second.
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        let Self { serial_port, value } = self;
+        let Self { serial_port, jog_speed, gcode_loader } = self;
         // Put your widgets into a `SidePanel`, `TopBottomPanel`, `CentralPanel`, `Window` or `Area`.
         // For inspiration and more examples, go to https://emilk.github.io/egui
 
@@ -83,7 +82,7 @@ impl eframe::App for TemplateApp {
             ui.add_space(16.0);
             ui.label("Set speed");
             ui.add(
-                egui::Slider::new(&mut self.value, 0.001..=0.100).text("Speed per jog (inches)"),
+                egui::Slider::new(jog_speed, 0.001..=0.100).text("Speed per jog (inches)"),
             );
             ui.label("GRBL settings:");
             ui.add_space(20.0);
@@ -128,6 +127,11 @@ impl eframe::App for TemplateApp {
                 egui::warn_if_debug_build(ui);
             });
         });
+    }
+
+    /// Called by the framework to save state before shutdown.
+    fn save(&mut self, storage: &mut dyn eframe::Storage) {
+        eframe::set_value(storage, eframe::APP_KEY, self);
     }
 }
 

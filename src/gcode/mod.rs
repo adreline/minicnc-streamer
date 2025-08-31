@@ -5,15 +5,19 @@ pub static OPENBUILDS_COMPAT: [(&str, &str); 3] = [
     ("G0 Z0", "M300 S30.00"), // Activate Pen; Tool On
 ];
 
-mod gcode_loader {
-    use crate::gcode_loader::OPENBUILDS_COMPAT;
+pub mod gcode_loader {
+    use crate::gcode::OPENBUILDS_COMPAT;
     use std::fs::read_to_string;
 
     pub struct GCodeLoader {
         pub filepath: String,
         pub gcode: Vec<String>,
     }
-
+    impl Default for GCodeLoader {
+        fn default() -> Self {
+            Self { filepath: "".to_string(), gcode: vec![] }
+        }
+    }
     impl GCodeLoader {
         pub fn new(filepath: String) -> Self {
             let gcode = translate_gcode(load_gcode(&*filepath));
