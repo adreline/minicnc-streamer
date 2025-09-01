@@ -1,9 +1,8 @@
 use crate::cnc_machine::CNCMachine;
 use crate::cncmachine::list_serial_ports;
 use crate::gcode_loader::GCodeLoader;
-use egui::{FontId, RichText, ScrollArea, TextStyle};
+use egui::{Color32, FontId, RichText, ScrollArea, TextStyle};
 use egui_file_dialog::FileDialog;
-use serialport::SerialPortType;
 use std::path::PathBuf;
 
 pub struct TemplateApp {
@@ -31,7 +30,7 @@ impl Default for TemplateApp {
 
 impl TemplateApp {
     /// Called once before the first frame.
-    pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
+    pub fn new() -> Self {
         // This is also where you can customize the look and feel of egui using
         // `cc.egui_ctx.set_visuals` and `cc.egui_ctx.set_fonts`.
 
@@ -40,21 +39,21 @@ impl TemplateApp {
         Default::default()
     }
 
-    fn custom_text(text: &str, size: f32) -> RichText {
-        RichText::new(text).font(FontId::proportional(size))
+    fn subheader(text: &str) -> RichText {
+        RichText::new(text)
+            .font(FontId::proportional(15.0))
+            .color(Color32::from_rgb(255, 238, 219))
+    }
+    fn header(text: &str) -> RichText {
+        RichText::new(text)
+            .font(FontId::proportional(25.0))
+            .color(Color32::from_rgb(209, 122, 34))
     }
 }
-
-const SUBHEADER_SIZE: f32 = 15.0;
 
 impl eframe::App for TemplateApp {
     /// Called each time the UI needs repainting, which may be many times per second.
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        let Self {
-            serial_port,
-            jog_speed,
-            ..
-        } = self;
         // Put your widgets into a `SidePanel`, `TopBottomPanel`, `CentralPanel`, `Window` or `Area`.
         // For inspiration and more examples, go to https://emilk.github.io/egui
 
@@ -67,7 +66,7 @@ impl eframe::App for TemplateApp {
         });
         egui::SidePanel::right("right_panel")
             .show(ctx, |ui| {
-                ui.heading("Manual Control");
+                ui.label(Self::header("Manual Control"));
                 ui.add_space(16.0);
                 let _ = ui.button("Zero machine").on_hover_text("Set home to the current location");
                 if ui.button("Go home").on_hover_text("Move the head to (0, 0)").clicked(){
@@ -98,20 +97,27 @@ impl eframe::App for TemplateApp {
             });
         egui::CentralPanel::default().show(ctx, |ui| {
             // The central panel the region left after adding TopPanel's and SidePanel's
-            ui.heading("Plotting settings");
+            ui.label(Self::header("Plotting settings"));
             ui.add_space(10.0);
             ui.label("Select serial port");
+
+            let mut serial_port_copy = self.serial_port.clone();
             egui::ComboBox::from_label("")
-                .selected_text(format!("{serial_port}"))
+                .selected_text(format!("{serial_port_copy}"))
                 .show_ui(ui, |ui| {
                     for serial_port_info in list_serial_ports() {
                         ui.selectable_value(
-                            serial_port,
+                            &mut serial_port_copy,
                             serial_port_info.port_name.clone(),
                             serial_port_info.port_name.clone(),
                         );
                     }
                 });
+            if self.serial_port != serial_port_copy {
+                self.serial_port = serial_port_copy;
+                self.serial_monitor.push("Serial port set".to_string());
+            }
+
             ui.add_space(16.0);
             ui.label(format!("Current file: {:?}", self.picked_file));
             if let Some(path) = self.file_dialog.update(ctx).picked() {
@@ -135,7 +141,10 @@ impl eframe::App for TemplateApp {
 
             ui.add_space(16.0);
             ui.label("Set speed");
-            ui.add(egui::Slider::new(jog_speed, 0.001..=0.100).text("Speed per jog (inches)"));
+            ui.add(
+                egui::Slider::new(&mut self.jog_speed, 0.001..=0.100)
+                    .text("Speed per jog (inches)"),
+            );
             ui.add_space(20.0);
             ui.horizontal(|ui| {
                 let _ = ui
@@ -147,15 +156,15 @@ impl eframe::App for TemplateApp {
             });
 
             ui.separator();
-            ui.heading("Status");
+            ui.label(Self::header("Status"));
             ui.add_space(10.0);
 
-            ui.label(Self::custom_text("GCode file", SUBHEADER_SIZE));
+            ui.label(Self::subheader("GCode file"));
             ui.label(format!("Lines: {:?}", self.gcode_loader.gcode.len()));
             ui.add_space(10.0);
-            ui.label(Self::custom_text("GRBL settings", SUBHEADER_SIZE));
+            ui.label(Self::subheader("GRBL settings"));
             ui.label("-");
-            ui.label(Self::custom_text("Serial monitor", SUBHEADER_SIZE));
+            ui.label(Self::subheader("Serial monitor"));
 
             ui.add_space(4.0);
 
