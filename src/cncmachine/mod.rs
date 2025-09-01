@@ -1,4 +1,4 @@
-use serialport::{available_ports, SerialPortInfo, SerialPortType};
+use serialport::{SerialPortInfo, SerialPortType, available_ports};
 
 pub mod cnc_machine {
     pub struct CNCMachine {
@@ -6,7 +6,7 @@ pub mod cnc_machine {
     }
     impl CNCMachine {
         pub(crate) fn new() -> Self {
-            Self {  }
+            Self {}
         }
     }
 }
@@ -19,7 +19,10 @@ pub fn list_serial_ports() -> Vec<SerialPortInfo> {
             ports.sort_by_key(|i| i.port_name.clone());
             let filtered_numbers: Vec<SerialPortInfo> = ports
                 .iter()
-                .filter(|&n| (n.port_type != SerialPortType::PciPort && n.port_type != SerialPortType::Unknown  ))
+                .filter(|&n| {
+                    (n.port_type != SerialPortType::PciPort
+                        && n.port_type != SerialPortType::Unknown)
+                })
                 .map(|n| n.clone())
                 .collect();
             filtered_numbers

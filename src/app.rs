@@ -1,10 +1,10 @@
+use crate::cnc_machine::CNCMachine;
+use crate::cncmachine::list_serial_ports;
 use crate::gcode_loader::GCodeLoader;
 use egui::{FontId, RichText, ScrollArea, TextStyle};
 use egui_file_dialog::FileDialog;
-use std::path::PathBuf;
 use serialport::SerialPortType;
-use crate::cnc_machine::CNCMachine;
-use crate::cncmachine::list_serial_ports;
+use std::path::PathBuf;
 
 pub struct TemplateApp {
     jog_speed: f32,
@@ -52,7 +52,8 @@ impl eframe::App for TemplateApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         let Self {
             serial_port,
-            jog_speed, ..
+            jog_speed,
+            ..
         } = self;
         // Put your widgets into a `SidePanel`, `TopBottomPanel`, `CentralPanel`, `Window` or `Area`.
         // For inspiration and more examples, go to https://emilk.github.io/egui
@@ -104,9 +105,12 @@ impl eframe::App for TemplateApp {
                 .selected_text(format!("{serial_port}"))
                 .show_ui(ui, |ui| {
                     for serial_port_info in list_serial_ports() {
-                        ui.selectable_value(serial_port, serial_port_info.port_name.clone(), serial_port_info.port_name.clone());
+                        ui.selectable_value(
+                            serial_port,
+                            serial_port_info.port_name.clone(),
+                            serial_port_info.port_name.clone(),
+                        );
                     }
-
                 });
             ui.add_space(16.0);
             ui.label(format!("Current file: {:?}", self.picked_file));
