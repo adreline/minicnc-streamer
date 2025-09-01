@@ -2,6 +2,8 @@
 
 mod app;
 mod gcode;
+mod cncmachine;
 
-pub use gcode::gcode_loader;
 pub use app::TemplateApp;
+pub use gcode::gcode_loader;
+pub use cncmachine::cnc_machine;

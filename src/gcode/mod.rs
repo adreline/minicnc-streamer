@@ -16,7 +16,10 @@ pub mod gcode_loader {
     }
     impl Default for GCodeLoader {
         fn default() -> Self {
-            Self { filepath: "".to_string().parse().unwrap(), gcode: vec![] }
+            Self {
+                filepath: "".to_string().parse().unwrap(),
+                gcode: vec![],
+            }
         }
     }
     impl GCodeLoader {

@@ -2,6 +2,9 @@ use crate::gcode_loader::GCodeLoader;
 use egui::{FontId, RichText, ScrollArea, TextStyle};
 use egui_file_dialog::FileDialog;
 use std::path::PathBuf;
+use serialport::SerialPortType;
+use crate::cnc_machine::CNCMachine;
+use crate::cncmachine::list_serial_ports;
 
 pub struct TemplateApp {
     jog_speed: f32,
@@ -10,6 +13,7 @@ pub struct TemplateApp {
     file_dialog: FileDialog,
     picked_file: Option<PathBuf>,
     serial_monitor: Vec<String>,
+    machine: CNCMachine,
 }
 impl Default for TemplateApp {
     fn default() -> Self {
@@ -20,6 +24,7 @@ impl Default for TemplateApp {
             file_dialog: FileDialog::new(),
             picked_file: None,
             serial_monitor: vec![],
+            machine: CNCMachine::new(),
         }
     }
 }
@@ -47,11 +52,7 @@ impl eframe::App for TemplateApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         let Self {
             serial_port,
-            jog_speed,
-            gcode_loader,
-            file_dialog,
-            picked_file,
-            serial_monitor,
+            jog_speed, ..
         } = self;
         // Put your widgets into a `SidePanel`, `TopBottomPanel`, `CentralPanel`, `Window` or `Area`.
         // For inspiration and more examples, go to https://emilk.github.io/egui
@@ -102,7 +103,10 @@ impl eframe::App for TemplateApp {
             egui::ComboBox::from_label("")
                 .selected_text(format!("{serial_port}"))
                 .show_ui(ui, |ui| {
-                    ui.selectable_value(serial_port, "/dev/tty1".parse().unwrap(), "tty1");
+                    for serial_port_info in list_serial_ports() {
+                        ui.selectable_value(serial_port, serial_port_info.port_name.clone(), serial_port_info.port_name.clone());
+                    }
+
                 });
             ui.add_space(16.0);
             ui.label(format!("Current file: {:?}", self.picked_file));
@@ -110,16 +114,32 @@ impl eframe::App for TemplateApp {
                 self.picked_file = Some(path.to_path_buf());
                 self.gcode_loader = GCodeLoader::new(self.picked_file.clone().expect("REASON"));
             }
-            if ui.button("Select file").clicked() {
-                self.file_dialog.pick_file();
-            };
+            ui.horizontal(|ui| {
+                if ui.button("Select file").clicked() {
+                    self.file_dialog.pick_file();
+                };
+                if ui
+                    .button("Inspect file")
+                    .on_hover_text("Dumps the pre-processed GCode file to serial monitor")
+                    .clicked()
+                {
+                    for row in self.gcode_loader.gcode.clone() {
+                        self.serial_monitor.push(row);
+                    }
+                };
+            });
+
             ui.add_space(16.0);
             ui.label("Set speed");
             ui.add(egui::Slider::new(jog_speed, 0.001..=0.100).text("Speed per jog (inches)"));
             ui.add_space(20.0);
             ui.horizontal(|ui| {
-                let _ = ui.button("Start plotting").on_hover_text("Begin streaming GCode");
-                let _ = ui.button("Abort plotting").on_hover_text("Stop streaming GCode (this is NOT immediate)");
+                let _ = ui
+                    .button("Start plotting")
+                    .on_hover_text("Begin streaming GCode");
+                let _ = ui
+                    .button("Abort plotting")
+                    .on_hover_text("Stop streaming GCode (this is NOT immediate)");
             });
 
             ui.separator();
