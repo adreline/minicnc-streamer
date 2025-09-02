@@ -23,7 +23,7 @@ impl Default for TemplateApp {
             file_dialog: FileDialog::new(),
             picked_file: None,
             serial_monitor: vec![],
-            machine: CNCMachine::new(),
+            machine: CNCMachine::default(),
         }
     }
 }
@@ -72,7 +72,18 @@ impl eframe::App for TemplateApp {
                 if ui.button("Go home").on_hover_text("Move the head to (0, 0)").clicked(){
                     self.serial_monitor.push("homehomehomehomehomehomehomehomehomehomehomehomehomehomehomehomehomehomehomehomehomehomehomehomehomehomehomehomehomehomehomehomehome".to_string());
                 };
-                let _ = ui.button("Lift the head").on_hover_text("De facto Z axis jog");
+
+                if ui.button(format!("{} the head", if self.machine.get_head_state() { "Descend" } else { "Lift" }))
+                    .on_hover_text("De facto Z axis jog")
+                    .clicked(){
+                    if self.machine.get_head_state() {
+                        self.machine.descend_the_head();
+                    } else {
+                        self.machine.lift_the_head();
+                    }
+
+                }
+
                 ui.add_space(10.0);
                 ui.label("Jog the head in X and Y axis");
                 egui::Grid::new("parent grid").striped(true).show(ui, |ui| {
@@ -115,7 +126,9 @@ impl eframe::App for TemplateApp {
                 });
             if self.serial_port != serial_port_copy {
                 self.serial_port = serial_port_copy;
+                self.machine = CNCMachine::new(&*self.serial_port, 9200);
                 self.serial_monitor.push("Serial port set".to_string());
+                self.machine.lift_the_head();
             }
 
             ui.add_space(16.0);
@@ -163,7 +176,7 @@ impl eframe::App for TemplateApp {
             ui.label(format!("Lines: {:?}", self.gcode_loader.gcode.len()));
             ui.add_space(10.0);
             ui.label(Self::subheader("GRBL settings"));
-            ui.label("-");
+            ui.label(format!("Head: {:?}", self.machine.get_head_state_as_str()));
             ui.label(Self::subheader("Serial monitor"));
 
             ui.add_space(4.0);
